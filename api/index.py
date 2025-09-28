@@ -1,64 +1,79 @@
-# api/index.py
+# saas/api/index.py
 import os
 from openai import AzureOpenAI
 from fastapi import FastAPI
-
-# Hard-fail early if anything is missing (shows up in Vercel logs)
-required = ["AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_DEPLOYMENT"]
-missing  = [k for k in required if not os.getenv(k)]
-if missing:
-    raise RuntimeError(f"Missing env vars: {', '.join(missing)}")
-
-#client = AzureOpenAI(
-#    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-#    api_key=os.environ["AZURE_OPENAI_API_KEY"],
-#    api_version="2024-06-01",  # use the version shown in AI Foundry "View code"
-#)
-
+from fastapi.responses import StreamingResponse
 
 app = FastAPI()
 
-@app.get("/api")
-def startup_idea():
-    endpoint = "https://dgrea-mfxaprip-swedencentral.cognitiveservices.azure.com/"
-    model_name = "gpt-5-nano"
-    deployment = "gpt-5-nano"
+SYSTEM_PROMPT = (
+    "You are a product ideation assistant. Always respond in GitHub-Flavored Markdown "
+    "with exactly this structure and no preamble or epilogue:\n\n"
+    "# {Title}\n"
+    "## {Subtitle}\n"
+    "### Problem\n"
+    "- {bullet}\n"
+    "- {bullet}\n"
+    "### AI Agent Design\n"
+    "- {bullet}\n"
+    "- {bullet}\n"
+    "### Target Users\n"
+    "- {bullet}\n"
+    "### Monetization\n"
+    "- {bullet}\n\n"
+    "Rules:\n"
+    "- Do not wrap the response in code fences.\n"
+    "- Do not include literal braces; replace with concrete content.\n"
+    "- Use concise, scannable bullets.\n"
+)
 
-    subscription_key = os.environ["AZURE_OPENAI_API_KEY"]
+def _stream_idea_chunks():
+    endpoint    = "https://dgrea-mfxaprip-swedencentral.cognitiveservices.azure.com/"
+    deployment  = "gpt-5-nano"                 # deployment name
     api_version = "2024-12-01-preview"
+    api_key     = os.environ["AZURE_OPENAI_API_KEY"]
 
     client = AzureOpenAI(
         api_version=api_version,
         azure_endpoint=endpoint,
-        api_key=subscription_key,
+        api_key=api_key,
     )
 
-    response = client.chat.completions.create(
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                "Invent a unique and innovative business idea that leverages AI Agents to solve a real-world problem "
+                "or create a new market opportunity. Make it practical and not complicated and yet forward‑thinking."
+            ),
+        },
+    ]
 
-        messages=[
-            {
-                "role": "user",
-                "content": 
-                """
-                    Invent a unique and innovative business idea that leverages AI Agents to solve a real-world problem 
-                    or create a new market opportunity. The idea should include:
-
-                    - A clear description of the problem it addresses.
-                    - How AI Agents will be used (their roles, autonomy, and interaction).
-                    - The target audience or industry.
-                    - A potential monetization model.
-                    - Make it practical yet forward-thinking.
-                """
-            }
-        ],
-
-        #---
-        
+    stream = client.chat.completions.create(
+        model=deployment,
+        stream=True,
+        messages=messages,
+        # If the API complains about this param name, switch to `max_tokens=16384`
         max_completion_tokens=16384,
-        model=deployment
     )
 
-    return response.choices[0].message.content
+    # Stream token deltas as SSE events
+    for chunk in stream:
+        delta = getattr(chunk.choices[0].delta, "content", None) if chunk.choices else None
+        if delta:
+            # Each SSE frame must end with a blank line
+            yield f"data: {delta}\n\n"
 
+    # Signal completion (optional but useful for the client)
+    yield "event: done\ndata: [DONE]\n\n"
 
-
+@app.get("/api")
+def stream_sse():
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        # Some proxies buffer; this header asks them not to (harmless if ignored)
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(_stream_idea_chunks(), media_type="text/event-stream", headers=headers)
