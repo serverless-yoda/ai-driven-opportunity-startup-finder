@@ -1,86 +1,184 @@
+/* app.css — Tailwind v4, CSS-first, elegant defaults */
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Allow class/attribute-driven dark mode in addition to system preference */
+@custom-variant dark (&:where(.dark, [data-theme="dark"], .dark *, [data-theme="dark"] *));
 
-@theme inline {
+/* --------------------------------------------------------------------- */
+/* THEME TOKENS -> Utilities (v4 idiomatic)                              */
+/* Exposes bg-background, text-foreground, text-accent, border-border…   */
+/* --------------------------------------------------------------------- */
+@theme {
+  /* Fonts (keep your Geist vars if provided, fallback to Inter) */
+  --font-sans: var(--font-geist-sans, Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif);
+  --font-mono: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+
+  /* Semantic colors mapped to utilities */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent: var(--accent);
+  --color-border: var(--border-color);
+
+  /* Nice-to-have design tokens */
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 1px rgb(0 0 0 / 0.04);
+  --shadow-elevated: 0 10px 30px rgb(0 0 0 / 0.14);
 }
 
+/* --------------------------------------------------------------------- */
+/* LIGHT / DARK TOKEN VALUES                                             */
+/* Keep your palette; add class/data dark override with graceful fallback*/
+/* --------------------------------------------------------------------- */
+:root {
+  --background: #f9fafb;   /* Light gray for a softer background */
+  --foreground: #111827;   /* Slate-900 text */
+  --accent: #2563eb;       /* Blue-600 */
+  --accent-hover: #1d4ed8; /* Blue-700 */
+  --border-color: #e5e7eb; /* Gray-200 */
+  color-scheme: light;
+}
+
+/* Respect system preference by default */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f172a;   /* Slate-900 */
+    --foreground: #f1f5f9;   /* Slate-100 */
+    --accent: #3b82f6;       /* Blue-500 */
+    --accent-hover: #2563eb; /* Blue-600 */
+    --border-color: #334155; /* Slate-600 */
+    color-scheme: dark;
   }
 }
+
+/* Manual/class dark mode (wins over media query when present) */
+.dark, [data-theme="dark"] {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --border-color: #334155;
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------- */
+/* GLOBAL                                                                */
+/* --------------------------------------------------------------------- */
+html, body { height: 100%; }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  font-size: 1rem;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-@layer base {
-  .markdown-content h1 {
-    font-size: 2em;
-    font-weight: bold;
-    margin: 0.67em 0;
+/* Optional: consistent selection color */
+::selection {
+  background: color-mix(in oklch, var(--accent), transparent 80%);
+  color: var(--accent);
+}
+
+/* --------------------------------------------------------------------- */
+/* MARKDOWN / LONG-FORM CONTENT                                          */
+/* Switch to Tailwind Typography plugin for elegant defaults, then tweak */
+/* --------------------------------------------------------------------- */
+@layer components {
+  .markdown-content {
+    /* Beautiful defaults + auto dark colors; similar width to your 65ch */
+    @apply prose prose-slate dark:prose-invert max-w-prose mx-auto px-4;
+
+    /* Headings */
+    @apply prose-h1:font-extrabold prose-h1:leading-tight prose-h1:text-balance;
+    @apply prose-h2:text-accent prose-h2:font-bold;
+    @apply prose-h3:font-semibold;
+
+    /* Links */
+    @apply prose-a:font-medium prose-a:underline prose-a:decoration-2 prose-a:underline-offset-4;
   }
-  .markdown-content h2 {
-    font-size: 1.5em;
-    font-weight: bold;
-    margin: 0.83em 0;
+
+  /* Fine-tune colors & states without losing prose defaults */
+  .markdown-content a {
+    color: var(--accent);
+    text-decoration-color: color-mix(in oklch, var(--accent), transparent 60%);
+    transition: color 0.2s ease, text-decoration-color 0.2s ease;
   }
-  .markdown-content h3 {
-    font-size: 1.17em;
-    font-weight: bold;
-    margin: 1em 0;
+  .markdown-content a:hover {
+    color: var(--accent-hover);
+    text-decoration-color: var(--accent-hover);
   }
-  .markdown-content h4 {
-    font-size: 1em;
-    font-weight: bold;
-    margin: 1.33em 0;
+
+  /* Blockquote: accent stripe + softer text */
+  .markdown-content blockquote {
+    @apply border-l-4 pl-4 italic;
+    border-color: color-mix(in oklch, var(--accent), transparent 35%);
+    color: color-mix(in oklch, var(--foreground), #6b7280 45%); /* soften */
   }
-  .markdown-content h5 {
-    font-size: 0.83em;
-    font-weight: bold;
-    margin: 1.67em 0;
+
+  /* Inline code: subtle pill */
+  .markdown-content :not(pre) > code {
+    @apply rounded-md px-1.5 py-0.5;
+    background: color-mix(in oklch, var(--foreground), transparent 95%);
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
   }
-  .markdown-content h6 {
-    font-size: 0.67em;
-    font-weight: bold;
-    margin: 2.33em 0;
+
+  /* Code blocks: themed, rounded, scrollable */
+  .markdown-content pre code {
+    @apply block rounded-[var(--radius-lg)] p-4 overflow-x-auto;
+    background: #1e293b;   /* slate-800/900 */
+    color: #f8fafc;
+    box-shadow: var(--shadow-soft);
   }
-  .markdown-content p {
-    margin: 1em 0;
-  }
-  .markdown-content ul {
-    list-style-type: disc;
-    padding-left: 2em;
-    margin: 1em 0;
-  }
-  .markdown-content ol {
-    list-style-type: decimal;
-    padding-left: 2em;
-    margin: 1em 0;
-  }
-  .markdown-content li {
-    margin: 0.25em 0;
-  }
-  .markdown-content strong {
-    font-weight: bold;
-  }
-  .markdown-content em {
-    font-style: italic;
-  }
+
+  /* Lists & spacing */
+  .markdown-content ul, .markdown-content ol { @apply my-4 pl-6; }
+  .markdown-content li { @apply my-1.5; }
+  .markdown-content p  { @apply my-3 text-[1.05rem]; }
+
+  /* Divider aligned to your border token */
   .markdown-content hr {
-    border: 0;
-    border-top: 1px solid #e5e7eb;
-    margin: 2em 0;
+    @apply my-10 border-0;
+    border-top: 1px solid var(--border-color);
+  }
+}
+
+/* --------------------------------------------------------------------- */
+/* OPTIONAL: tiny utility sprinkles for nicer accents                     */
+/* --------------------------------------------------------------------- */
+@layer utilities {
+  /* Robust gradient headline — works in Safari and overrides conflicting color classes */
+  .headline-gradient {
+    /* Typography */
+    font-weight: 800;          /* equals font-extrabold */
+    letter-spacing: -0.02em;   /* similar to tracking-tight */
+
+    /* Gradient background (light) */
+    background-image: linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--accent, #2563eb), white 12%),
+      color-mix(in oklch, var(--accent, #2563eb), black 10%)
+    );
+
+    /* Clip gradient to text */
+    -webkit-background-clip: text;
+    background-clip: text;
+
+    /* Make glyphs transparent — the key to revealing the gradient */
+    color: transparent !important;              /* beats text-gray-* */
+    -webkit-text-fill-color: transparent;       /* Safari */
+  }
+
+  /* Dark mode variant (class/attribute or prefers-color-scheme) */
+  .dark .headline-gradient,
+  [data-theme="dark"] .headline-gradient {
+    background-image: linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--accent, #3b82f6), white 20%),
+      color-mix(in oklch, var(--accent, #3b82f6), black 5%)
+    );
   }
 }

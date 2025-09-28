@@ -101,7 +101,7 @@ export default function Product() {
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-pulse text-gray-400">
-                  Generating your business idea...
+                    What’s the Next Big Thing? Let AI Show You
                 </div>
               </div>
             ) : (

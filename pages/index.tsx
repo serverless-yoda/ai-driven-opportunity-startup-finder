@@ -9,9 +9,18 @@ export default function Home() {
       <div className="container mx-auto px-4 py-12">
         {/* Navigation */}
         <nav className="flex justify-between items-center mb-12">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            Startup Finder
-          </h1>
+        <h1
+          className="
+            text-balance text-3xl sm:text-4xl font-extrabold tracking-tight
+            text-transparent bg-clip-text
+            bg-linear-to-r from-blue-600 via-indigo-500 to-purple-600
+            dark:from-blue-400 dark:via-indigo-300 dark:to-purple-400
+            [-webkit-text-fill-color:transparent]
+          "
+        >
+          From Idea to Impact: Start Here
+        </h1>
+
           <div>
             <SignedOut>
               <SignInButton mode="modal">
