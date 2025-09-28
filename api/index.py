@@ -1,10 +1,14 @@
 # saas/api/index.py
 import os
 from openai import AzureOpenAI
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.responses import StreamingResponse
+from fastapi_clerk_auth import ClerkConfig, ClerkHTTPBearer, HTTPAuthorizationCredentials 
 
 app = FastAPI()
+
+clerk_config = ClerkConfig(jwks_url=os.getenv("CLERK_JWKS_URL"))
+clerk_guard = ClerkHTTPBearer(clerk_config)
 
 SYSTEM_PROMPT = (
     "You are a product ideation assistant. Always respond in GitHub-Flavored Markdown "
@@ -69,7 +73,7 @@ def _stream_idea_chunks():
     yield "event: done\ndata: [DONE]\n\n"
 
 @app.get("/api")
-def stream_sse():
+def stream_sse(creds: HTTPAuthorizationCredentials = Depends(clerk_guard)):
     headers = {
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
